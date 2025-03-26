@@ -13,7 +13,6 @@ api_key = os.getenv("NVIDIA_API_KEY") or st.secrets.get("NVIDIA_API_KEY", "")
 client = None
 if api_key:
     try:
-        # Initialize with minimal configuration to avoid 'proxies' error
         client = OpenAI(
             base_url="https://integrate.api.nvidia.com/v1",
             api_key=api_key
@@ -177,23 +176,17 @@ if 'user_input' not in st.session_state:
 st.title("Avinash Vikram Singh")
 st.caption("AI Voice Assistant")
 
-# Custom webrtc_streamer implementation to avoid experimental_rerun
-class WebRTCStreamer:
-    def __init__(self):
-        self.ctx = None
-        
-    def run(self):
-        self.ctx = webrtc_streamer(
-            key="voice-chat",
-            mode=WebRtcMode.SENDONLY,
-            audio_frame_callback=audio_frame_handler,
-            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
-            media_stream_constraints={"audio": True}
-        )
-        return self.ctx
-
-# Process conversation
-def process_conversation():
+# WebRTC Audio Input
+def webrtc_app():
+    ctx = webrtc_streamer(
+        key="voice-chat",
+        mode=WebRtcMode.SENDONLY,
+        audio_frame_callback=audio_frame_handler,
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        media_stream_constraints={"audio": True}
+    )
+    
+    # Process conversation
     if 'user_input' in st.session_state and st.session_state.user_input:
         user_text = st.session_state.user_input.strip()
         if user_text:
@@ -207,27 +200,23 @@ def process_conversation():
                 if audio_bytes:
                     st.audio(audio_bytes, format='audio/mp3')
                     st.session_state.user_input = ""  # Reset input
-                    st.experimental_rerun() if hasattr(st, 'experimental_rerun') else st.rerun()
+                    st.experimental_rerun()
 
-# Display conversation
-for speaker, text in st.session_state.conversation[-6:]:
-    st.markdown(f"**{speaker}:** {text}")
+    # Display conversation
+    for speaker, text in st.session_state.conversation[-6:]:
+        st.markdown(f"**{speaker}:** {text}")
 
-# Initialize WebRTC
-webrtc = WebRTCStreamer()
-ctx = webrtc.run()
+    # Text input fallback
+    with st.expander("Type your question"):
+        text_input = st.text_input("Text input:")
+        if text_input:
+            response = generate_response(text_input)
+            st.session_state.conversation.append(("You", text_input))
+            st.session_state.conversation.append(("Avinash", response))
+            audio_bytes = text_to_speech(response)
+            if audio_bytes:
+                st.audio(audio_bytes, format='audio/mp3')
+            st.experimental_rerun()
 
-# Process any audio input
-process_conversation()
-
-# Text input fallback
-with st.expander("Type your question"):
-    text_input = st.text_input("Text input:")
-    if text_input:
-        response = generate_response(text_input)
-        st.session_state.conversation.append(("You", text_input))
-        st.session_state.conversation.append(("Avinash", response))
-        audio_bytes = text_to_speech(response)
-        if audio_bytes:
-            st.audio(audio_bytes, format='audio/mp3')
-        st.experimental_rerun() if hasattr(st, 'experimental_rerun') else st.rerun()
+# Run the app
+webrtc_app()
