@@ -9,12 +9,9 @@ import re
 import os
 from openai import OpenAI
 
-# Initialize OpenAI client with environment variable fallback
-api_key = os.getenv("NVIDIA_API_KEY", st.secrets.get("NVIDIA_API_KEY", ""))
-client = OpenAI(
-    base_url="https://integrate.api.nvidia.com/v1",
-    api_key=api_key
-) if api_key else None
+# Initialize OpenAI client with fallbacks
+api_key = os.getenv("NVIDIA_API_KEY") or st.secrets.get("NVIDIA_API_KEY", "")
+client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key) if api_key else None
 
 # Context data
 AVINASH_CONTEXT = {
@@ -102,25 +99,19 @@ AVINASH_CONTEXT = {
 }
 
 def sanitize_text(text):
-    """Clean text for speech synthesis"""
     text = re.sub(r'[^.!?]*$', '', text)
     return re.sub(r'([$`"\\])', r'\\\1', text)
 
 def generate_response(prompt):
-    """Generate response with error handling"""
     if not client:
-        return "API configuration error. Please check your secrets."
+        return "API configuration error. Check your secrets."
     
     try:
         response = client.chat.completions.create(
             model="meta/llama3-70b-instruct",
             messages=[{
                 "role": "system",
-                "content": f"""Respond as Avinash using: {AVINASH_CONTEXT}
-                Guidelines:
-                1. 2-3 sentences max
-                2. Professional tone
-                3. Reference real experience"""
+                "content": f"Respond as Avinash using: {AVINASH_CONTEXT}\nGuidelines: 2-3 sentences, professional tone"
             },{
                 "role": "user", 
                 "content": prompt
@@ -130,10 +121,9 @@ def generate_response(prompt):
         )
         return sanitize_text(response.choices[0].message.content.strip())
     except Exception as e:
-        return f"Let me think differently. Error: {str(e)}"
+        return f"Error processing request: {str(e)}"
 
 def text_to_speech(text):
-    """Convert text to speech with error handling"""
     try:
         tts = gTTS(text=text[:500], lang='en')
         fp = BytesIO()
@@ -144,7 +134,6 @@ def text_to_speech(text):
         return None
 
 def audio_frame_handler(frame: av.AudioFrame):
-    """Process audio input"""
     recognizer = sr.Recognizer()
     try:
         audio_data = frame.to_ndarray().tobytes()
@@ -155,23 +144,14 @@ def audio_frame_handler(frame: av.AudioFrame):
         st.session_state.user_input = ""
     return frame
 
-# Streamlit UI
-st.set_page_config(
-    page_title="Avinash Voice Assistant",
-    layout="centered"
-)
+# Streamlit UI Configuration
+st.set_page_config(page_title="Avinash Voice Assistant", layout="centered")
 
-# Initialize session state
 if 'conversation' not in st.session_state:
     st.session_state.conversation = []
-if 'user_input' not in st.session_state:
-    st.session_state.user_input = ""
 
-# App Header
-st.title("Avinash Vikram Singh")
-st.caption("AI Voice Assistant")
+st.title("Avinash AI Assistant")
 
-# WebRTC Audio Input
 ctx = webrtc_streamer(
     key="voice-chat",
     mode=WebRtcMode.SENDONLY,
@@ -180,31 +160,25 @@ ctx = webrtc_streamer(
     media_stream_constraints={"audio": True}
 )
 
-# Process conversation
-if ctx and st.session_state.user_input:
+if ctx and st.session_state.get("user_input"):
     user_text = st.session_state.user_input.strip()
     if user_text:
         with st.spinner("Generating response..."):
             response = generate_response(user_text)
             audio_bytes = text_to_speech(response)
             
-            st.session_state.conversation.append(("You", user_text))
-            st.session_state.conversation.append(("Avinash", response))
+            st.session_state.conversation.extend([("You", user_text), ("Avinash", response)])
             
             if audio_bytes:
                 st.audio(audio_bytes, format='audio/mp3')
+                st.rerun()
 
-# Display conversation
 for speaker, text in st.session_state.conversation[-6:]:
     st.markdown(f"**{speaker}:** {text}")
 
-# Text input fallback
-with st.expander("Type your question"):
-    text_input = st.text_input("Text input:")
+with st.expander("Text Input"):
+    text_input = st.text_input("Type your question:")
     if text_input:
         response = generate_response(text_input)
-        st.session_state.conversation.append(("You", text_input))
-        st.session_state.conversation.append(("Avinash", response))
-        audio_bytes = text_to_speech(response)
-        if audio_bytes:
-            st.audio(audio_bytes, format='audio/mp3')
+        st.session_state.conversation.extend([("You", text_input), ("Avinash", response)])
+        st.rerun()
