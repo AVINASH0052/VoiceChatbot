@@ -176,7 +176,7 @@ ctx = webrtc_streamer(
     key="voice-chat",
     mode=WebRtcMode.SENDONLY,
     audio_frame_callback=audio_frame_handler,
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}],
+    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
     media_stream_constraints={"audio": True}
 )
 
