@@ -177,7 +177,7 @@ st.title("Avinash Vikram Singh")
 st.caption("AI Voice Assistant")
 
 # WebRTC Audio Input
-try:
+def webrtc_app():
     ctx = webrtc_streamer(
         key="voice-chat",
         mode=WebRtcMode.SENDONLY,
@@ -185,37 +185,38 @@ try:
         rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
         media_stream_constraints={"audio": True}
     )
-except Exception as e:
-    st.error(f"WebRTC initialization error: {str(e)}")
+    
+    # Process conversation
+    if 'user_input' in st.session_state and st.session_state.user_input:
+        user_text = st.session_state.user_input.strip()
+        if user_text:
+            with st.spinner("Generating response..."):
+                response = generate_response(user_text)
+                audio_bytes = text_to_speech(response)
+                
+                st.session_state.conversation.append(("You", user_text))
+                st.session_state.conversation.append(("Avinash", response))
+                
+                if audio_bytes:
+                    st.audio(audio_bytes, format='audio/mp3')
+                    st.session_state.user_input = ""  # Reset input
+                    st.rerun()  # Changed from experimental_rerun to rerun
 
-# Process conversation
-if 'user_input' in st.session_state and st.session_state.user_input:
-    user_text = st.session_state.user_input.strip()
-    if user_text:
-        with st.spinner("Generating response..."):
-            response = generate_response(user_text)
-            audio_bytes = text_to_speech(response)
-            
-            st.session_state.conversation.append(("You", user_text))
+    # Display conversation
+    for speaker, text in st.session_state.conversation[-6:]:
+        st.markdown(f"**{speaker}:** {text}")
+
+    # Text input fallback
+    with st.expander("Type your question"):
+        text_input = st.text_input("Text input:")
+        if text_input:
+            response = generate_response(text_input)
+            st.session_state.conversation.append(("You", text_input))
             st.session_state.conversation.append(("Avinash", response))
-            
+            audio_bytes = text_to_speech(response)
             if audio_bytes:
                 st.audio(audio_bytes, format='audio/mp3')
-                st.session_state.user_input = ""  # Reset input
-                st.experimental_rerun()
+            st.rerun()  # Changed from experimental_rerun to rerun
 
-# Display conversation
-for speaker, text in st.session_state.conversation[-6:]:
-    st.markdown(f"**{speaker}:** {text}")
-
-# Text input fallback
-with st.expander("Type your question"):
-    text_input = st.text_input("Text input:")
-    if text_input:
-        response = generate_response(text_input)
-        st.session_state.conversation.append(("You", text_input))
-        st.session_state.conversation.append(("Avinash", response))
-        audio_bytes = text_to_speech(response)
-        if audio_bytes:
-            st.audio(audio_bytes, format='audio/mp3')
-        st.experimental_rerun()
+# Run the app
+webrtc_app()
