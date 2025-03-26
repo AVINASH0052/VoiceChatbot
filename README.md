@@ -4,9 +4,8 @@ A voice-enabled AI assistant representing Avinash Vikram Singh, featuring voice/
 
 [![Flask](https://img.shields.io/badge/Flask-3.0.3-000000?logo=flask)](https://flask.palletsprojects.com/)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)](https://python.org)
-[![NVIDIA](https://img.shields.io/badge/NVIDIA_AI-API-76B900?logo=nvidia)](https://integrate.nvidia.com)
+[![NVIDIA](https://img.shields.io/badge/NVIDIA_AI-API-76B900?logo=nvidia)]([https://integrate.nvidia.com](https://build.nvidia.com/))
 
-![Chatbot Interface](./screenshot.png)
 
 ## Features ✨
 - 🎙️ Voice input via Web Speech API
