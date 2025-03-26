@@ -23,7 +23,7 @@ A voice-enabled AI assistant representing Avinash Vikram Singh, featuring voice/
 
 ### Local Setup
 ```bash
-git clone https://github.com/yourusername/avinash-chatbot.git
+git clone https://github.com/avinash0052/avinash-chatbot.git
 cd avinash-chatbot
 pip install -r requirements.txt
 export NVIDIA_API_KEY="your_api_key_here"
