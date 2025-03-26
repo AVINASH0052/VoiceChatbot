@@ -25,7 +25,76 @@ AVINASH_CONTEXT = {
             "github": "github.com/AVINASH0052"
         }
     },
-    # ... (rest of your existing AVINASH_CONTEXT dictionary) ...
+    "education": {
+        "degree": "BSc(Honours) Computer Science",
+        "university": "Delhi University",
+        "graduation_year": "2023",
+        "gpa": "7.5"
+    },
+    "professional_experience": {
+        "most_recent_role": {
+            "company": "ARD INFORMATION SYSTEMS",
+            "position": "Data Scientist",
+            "duration": "November 2023 - March 2025",
+            "responsibilities": [
+                "Developed AI models for predictive analytics",
+                "Implemented NLP solutions",
+                "Worked with machine learning and deep learning models"
+            ],
+            "current_status": "Completed in March 2025"
+        },
+        "previous_roles": [
+            {
+                "company": "ARD INFORMATION SYSTEMS",
+                "position": "Data Scientist Intern",
+                "duration": "July 2023 - September 2023"
+            },
+            {
+                "company": "AMIGA INFORMATICS",
+                "position": "Java Programmer Intern",
+                "duration": "December 2021 - March 2022"
+            }
+        ]
+    },
+    "technical_skills": {
+        "core_competencies": [
+            "Retrieval-Augmented Generation (RAG)",
+            "LLM Fine-tuning",
+            "AI API Development",
+            "Speech Recognition Systems"
+        ],
+        "programming": ["Python", "Java", "R", "C++"],
+        "ml_frameworks": ["TensorFlow", "PyTorch", "Keras"],
+        "data_tools": ["Pandas", "NumPy", "SQL", "Tableau"]
+    },
+    "projects": [
+        {
+            "name": "Flickr8K Image Captioning",
+            "description": "Computer vision model generating captions for images",
+            "tech_stack": ["TensorFlow", "OpenCV", "Keras"]
+        },
+        {
+            "name": "Movie Assistant Chatbot",
+            "description": "LLM-powered conversational agent for movie recommendations",
+            "tech_stack": ["Langchain", "Transformers"]
+        }
+    ],
+    "current_focus": [
+        "Exploring new career opportunities in AI/ML",
+        "Enhancing skills in LLM fine-tuning",
+        "Contributing to open-source AI projects"
+    ],
+    "career_preferences": {
+        "seeking": "Data Scientist/AI Engineer roles",
+        "availability": "Immediate",
+        "work_preference": "Hybrid/Remote with Bengaluru preference"
+    },
+    "personal_interests": [
+        "Exploring new AI research papers",
+        "Contributing to open-source projects",
+        "Bengaluru's coffee culture",
+        "Hiking and outdoor activities"
+    ]
 }
 
 def sanitize_text(text):
