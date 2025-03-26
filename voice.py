@@ -9,15 +9,14 @@ import os
 import logging
 from openai import OpenAI
 
-# Configure logging to ignore ScriptRunContext warnings
+# Configure logging to ignore warnings
 logging.getLogger("streamlit.runtime.scriptrunner").setLevel(logging.ERROR)
 
 # Initialize OpenAI client
 api_key = os.getenv("NVIDIA_API_KEY") or st.secrets.get("NVIDIA_API_KEY", "")
 client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key) if api_key else None
 
-# Context data (include your full AVINASH_CONTEXT here)
-# Context data
+# Context data for AI responses
 AVINASH_CONTEXT = {
     "personal_details": {
         "full_name": "Avinash Vikram Singh",
@@ -36,79 +35,20 @@ AVINASH_CONTEXT = {
         "graduation_year": "2023",
         "gpa": "7.5"
     },
-    "professional_experience": {
-        "most_recent_role": {
-            "company": "ARD INFORMATION SYSTEMS",
-            "position": "Data Scientist",
-            "duration": "November 2023 - March 2025",
-            "responsibilities": [
-                "Developed AI models for predictive analytics",
-                "Implemented NLP solutions",
-                "Worked with machine learning and deep learning models"
-            ],
-            "current_status": "Completed in March 2025"
-        },
-        "previous_roles": [
-            {
-                "company": "ARD INFORMATION SYSTEMS",
-                "position": "Data Scientist Intern",
-                "duration": "July 2023 - September 2023"
-            },
-            {
-                "company": "AMIGA INFORMATICS",
-                "position": "Java Programmer Intern",
-                "duration": "December 2021 - March 2022"
-            }
-        ]
-    },
     "technical_skills": {
-        "core_competencies": [
-            "Retrieval-Augmented Generation (RAG)",
-            "LLM Fine-tuning",
-            "AI API Development",
-            "Speech Recognition Systems"
-        ],
+        "core_competencies": ["LLM Fine-tuning", "AI API Development", "Speech Recognition"],
         "programming": ["Python", "Java", "R", "C++"],
-        "ml_frameworks": ["TensorFlow", "PyTorch", "Keras"],
-        "data_tools": ["Pandas", "NumPy", "SQL", "Tableau"]
-    },
-    "projects": [
-        {
-            "name": "Flickr8K Image Captioning",
-            "description": "Computer vision model generating captions for images",
-            "tech_stack": ["TensorFlow", "OpenCV", "Keras"]
-        },
-        {
-            "name": "Movie Assistant Chatbot",
-            "description": "LLM-powered conversational agent for movie recommendations",
-            "tech_stack": ["Langchain", "Transformers"]
-        }
-    ],
-    "current_focus": [
-        "Exploring new career opportunities in AI/ML",
-        "Enhancing skills in LLM fine-tuning",
-        "Contributing to open-source AI projects"
-    ],
-    "career_preferences": {
-        "seeking": "Data Scientist/AI Engineer roles",
-        "availability": "Immediate",
-        "work_preference": "Hybrid/Remote with Bengaluru preference"
-    },
-    "personal_interests": [
-        "Exploring new AI research papers",
-        "Contributing to open-source projects",
-        "Bengaluru's coffee culture",
-        "Hiking and outdoor activities"
-    ]
+        "ml_frameworks": ["TensorFlow", "PyTorch", "Keras"]
+    }
 }
 
 def sanitize_text(text):
-    """Clean text for speech synthesis"""
+    """Clean text for speech synthesis."""
     text = re.sub(r'[^.!?]*$', '', text)
     return re.sub(r'([$`"\\])', r'\\\1', text)
 
 def generate_response(prompt):
-    """Generate response with error handling"""
+    """Generate AI response with error handling."""
     if not client:
         return "API configuration error. Please check your secrets."
     
@@ -129,12 +69,12 @@ def generate_response(prompt):
             temperature=0.65,
             max_tokens=200
         )
-        return sanitize_text(response.choices[0].message.content.strip())
+        return sanitize_text(response.choices[0].message.content.strip()) if response and response.choices else "No response received."
     except Exception as e:
-        return f"Error processing request: {str(e)}"
+        return f"Error: {str(e)}"
 
 def text_to_speech(text):
-    """Convert text to speech with error handling"""
+    """Convert text to speech."""
     try:
         tts = gTTS(text=text[:500], lang='en')
         fp = BytesIO()
@@ -145,54 +85,65 @@ def text_to_speech(text):
         return None
 
 def audio_frame_handler(frame: av.AudioFrame):
-    """Process audio input with async context handling"""
+    """Process audio input and convert speech to text."""
     recognizer = sr.Recognizer()
+    
     try:
         audio_data = frame.to_ndarray().tobytes()
-        audio = sr.AudioData(audio_data, frame.sample_rate, 2)
-        text = recognizer.recognize_google(audio)
-        st.session_state.user_input = text
-    except Exception:
+        with sr.AudioFile(BytesIO(audio_data)) as source:
+            audio = recognizer.record(source)
+            text = recognizer.recognize_google(audio)
+            if text and ('last_input' not in st.session_state or st.session_state.last_input != text):
+                st.session_state.user_input = text
+                st.session_state.last_input = text  # Avoid duplicate processing
+    except Exception as e:
         st.session_state.user_input = ""
+        st.warning(f"Voice recognition error: {str(e)}")
+
     return frame
 
 # Streamlit UI Configuration
 st.set_page_config(page_title="Avinash Voice Assistant", layout="centered")
 
-# Initialize session state
+# Initialize session state variables
 if 'conversation' not in st.session_state:
     st.session_state.conversation = []
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
 
-# Main app interface
+# Main App UI
 st.title("Avinash Vikram Singh - AI Voice Assistant")
 
-# WebRTC component with proper async configuration
+# WebRTC component with fixed async handling
 ctx = webrtc_streamer(
     key="voice-chat",
     mode=WebRtcMode.SENDONLY,
     audio_frame_callback=audio_frame_handler,
     rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
     media_stream_constraints={"audio": True},
-    async_processing=True
+    async_processing=False  # Disabling async to fix missing ScriptRunContext
 )
 
-# Conversation handling
+# Process user input from voice
 if ctx and st.session_state.user_input:
     user_text = st.session_state.user_input.strip()
-    if user_text:
+    
+    if user_text and ('last_input' not in st.session_state or st.session_state.last_input != user_text):
         with st.spinner("Generating response..."):
             response = generate_response(user_text)
             audio_bytes = text_to_speech(response)
-            
+
+            # Append to chat history
             st.session_state.conversation.append(("You", user_text))
             st.session_state.conversation.append(("Avinash", response))
+            st.session_state.last_input = user_text  # Prevent duplicate processing
             
+            # Play response audio
             if audio_bytes:
                 st.audio(audio_bytes, format='audio/mp3')
-                st.session_state.user_input = ""
-                st.rerun()
+
+            st.session_state.user_input = ""  # Reset input
+            st.rerun()
 
 # Display conversation history
 for speaker, text in st.session_state.conversation[-6:]:
@@ -203,9 +154,14 @@ with st.expander("Type your question"):
     text_input = st.text_input("Text input:")
     if text_input:
         response = generate_response(text_input)
+        
+        # Append to conversation history
         st.session_state.conversation.append(("You", text_input))
         st.session_state.conversation.append(("Avinash", response))
+        
+        # Convert response to speech
         audio_bytes = text_to_speech(response)
         if audio_bytes:
             st.audio(audio_bytes, format='audio/mp3')
+        
         st.rerun()
