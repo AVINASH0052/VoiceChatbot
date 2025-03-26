@@ -3,5 +3,5 @@ streamlit-webrtc==0.47.0
 gTTS==2.3.2
 openai==1.30.0
 SpeechRecognition==3.10.0
-PyAV==12.0.0
+PyAV>=14.0.0  
 pydub==0.25.1
