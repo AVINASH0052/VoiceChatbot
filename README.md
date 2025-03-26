@@ -18,7 +18,7 @@ A voice-enabled AI assistant representing Avinash Vikram Singh, featuring voice/
 ## Installation 🛠️
 
 ### Prerequisites
-- NVIDIA API key ([Get here][(https://build.nvidia.com/)])
+- NVIDIA API key ([Get here](https://build.nvidia.com/))
 - Python 3.11+
 
 ### Local Setup
