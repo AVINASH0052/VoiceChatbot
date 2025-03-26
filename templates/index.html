@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avinash AI Assistant</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background: #e9ecef;
+            color: #212529;
+            margin-right: auto;
+        }
+
+        .message-content {
+            line-height: 1.5;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .mic-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #dc3545;
+        }
+
+        .mic-button:hover {
+            background: #c82333;
+        }
+
+        .mic-button.active {
+            background: #28a745;
+            animation: pulse 1.5s infinite;
+        }
+
+        .stop-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ff4444;
+        }
+
+        .stop-button:hover {
+            background: #cc0000;
+        }
+
+        .stop-button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40,167,69,0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(40,167,69,0); }
+            100% { box-shadow: 0 0 0 0 rgba(40,167,69,0); }
+        }
+
+        .status {
+            text-align: center;
+            color: #6c757d;
+            margin: 10px 0;
+            min-height: 20px;
+        }
+
+        .typing-indicator {
+            display: none;
+            margin: 5px 0;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .chat-container {
+                height: 80vh;
+                padding: 15px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+            
+            button {
+                padding: 8px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">Hello, I'm Avinash Vikram Singh. Ready to discuss my professional background.</div>
+            </div>
+        </div>
+        <div class="typing-indicator" id="typing-indicator">Avinash is typing...</div>
+        <div class="status" id="status">Click microphone to start speaking</div>
+        <div class="controls">
+            <div class="button-group">
+                <button class="mic-button" id="mic-button" title="Start Recording">
+                    <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.94-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.06 7.44-7 7.93V19h4v2H8v-2h4v-3.07z"/>
+                    </svg>
+                </button>
+                <button class="stop-button" id="stop-button" title="Stop Speaking" disabled>
+                    <svg width="24" height="24" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M6 18h12V6H6v12z"/>
+                    </svg>
+                </button>
+            </div>
+            <input type="text" id="user-input" placeholder="Type your message or use microphone" autocomplete="off">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const statusElement = document.getElementById('status');
+        const chatMessages = document.getElementById('chat-messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const micButton = document.getElementById('mic-button');
+        const stopButton = document.getElementById('stop-button');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        
+        let recognition;
+        let isListening = false;
+        const synth = window.speechSynthesis;
+        let isSpeaking = false;
+
+        // Initialize Web Speech API
+        function initSpeechRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-IN';
+                recognition.maxAlternatives = 1;
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    micButton.classList.add('active');
+                    statusElement.textContent = 'Listening... Speak now';
+                    userInput.placeholder = 'Listening...';
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    if (transcript.trim()) {
+                        handleUserInput(transcript);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    statusElement.textContent = 'Error: ' + event.error;
+                    resetVoiceInput();
+                };
+
+                recognition.onend = () => {
+                    if (isListening) {
+                        resetVoiceInput();
+                    }
+                };
+            } else {
+                micButton.disabled = true;
+                statusElement.textContent = 'Speech recognition not supported in this browser';
+                userInput.placeholder = 'Type your message';
+            }
+        }
+
+        function resetVoiceInput() {
+            isListening = false;
+            micButton.classList.remove('active');
+            statusElement.textContent = 'Ready for your question';
+            userInput.placeholder = 'Type your message or use microphone';
+        }
+
+        // Voice Input Handler
+        micButton.addEventListener('click', () => {
+            if (!recognition) {
+                initSpeechRecognition();
+            }
+            
+            if (!isListening) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    statusElement.textContent = 'Error starting microphone: ' + e.message;
+                }
+            } else {
+                recognition.stop();
+            }
+        });
+
+        // Stop Button Handler
+        stopButton.addEventListener('click', () => {
+            if (synth.speaking) {
+                synth.cancel();
+                isSpeaking = false;
+                stopButton.disabled = true;
+                statusElement.textContent = 'Speech stopped. Ready for your question.';
+            }
+        });
+
+        // Text Input Handlers
+        sendButton.addEventListener('click', () => {
+            sendMessage();
+        });
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                handleUserInput(message);
+                userInput.value = '';
+            }
+        }
+
+        // Handle both voice and text input
+        async function handleUserInput(message) {
+            addMessage(message, 'user');
+            typingIndicator.style.display = 'block';
+            statusElement.textContent = 'Processing your question...';
+            
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                if (data.response) {
+                    typingIndicator.style.display = 'none';
+                    addMessage(data.response, 'bot');
+                    speakResponse(data.response);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                typingIndicator.style.display = 'none';
+                statusElement.textContent = 'Error communicating with server';
+                addMessage("Sorry, I encountered an error. Please try again.", 'bot');
+            }
+        }
+
+        // Add messages to chat
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = text;
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Text-to-Speech with Indian accent preference
+        function speakResponse(text) {
+            if (isSpeaking) {
+                synth.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voices = synth.getVoices();
+            
+            // Try to find an Indian English voice
+            const indianVoice = voices.find(voice => 
+                voice.lang.includes('IN') || 
+                voice.name.includes('India') ||
+                voice.name.includes('Ravi')
+            );
+            
+            utterance.voice = indianVoice || voices.find(voice => voice.lang.includes('en')) || voices[0];
+            utterance.pitch = 0.9;
+            utterance.rate = 1.0;
+            utterance.lang = 'en-IN';
+
+            utterance.onstart = () => {
+                isSpeaking = true;
+                statusElement.textContent = 'Avinash is speaking...';
+                stopButton.disabled = false;
+            };
+            
+            utterance.onend = () => {
+                isSpeaking = false;
+                statusElement.textContent = 'Ready for your next question';
+                stopButton.disabled = true;
+            };
+            
+            utterance.onerror = (event) => {
+                console.error('Speech error:', event);
+                isSpeaking = false;
+                statusElement.textContent = 'Speech output error';
+                stopButton.disabled = true;
+            };
+            
+            synth.speak(utterance);
+        }
+
+        // Load voices when they become available
+        synth.onvoiceschanged = function() {
+            console.log('Voices loaded:', synth.getVoices());
+        };
+
+        // Initialize on page load and speak welcome message
+        window.addEventListener('load', () => {
+            initSpeechRecognition();
+            
+            // Speak welcome message after slight delay to ensure voices are loaded
+            setTimeout(() => {
+                const welcomeMessage = "Hello, I'm Avinash Vikram Singh. Ready to discuss my professional background.";
+                speakResponse(welcomeMessage);
+            }, 500);
+
+            // Some browsers need this to populate voices immediately
+            if (synth.getVoices().length === 0) {
+                synth.onvoiceschanged = function() {
+                    console.log('Voices loaded:', synth.getVoices());
+                };
+            }
+        });
+    </script>
+</body>
+</html>
